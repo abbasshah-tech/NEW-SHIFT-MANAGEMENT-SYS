@@ -21,6 +21,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $department_id = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
         $role_id = $_POST['role_id'];
         $date_joined = !empty($_POST['date_joined']) ? $_POST['date_joined'] : date('Y-m-d');
+        $weekly_off_day = !empty($_POST['weekly_off_day']) ? $_POST['weekly_off_day'] : null;
         
         // Auto-generate username from email or name
         $username = strtolower($first_name . '.' . $last_name);
@@ -38,8 +39,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $user_id = $pdo->lastInsertId();
             
             // 2. Create Employee Record
-            $stmt = $pdo->prepare("INSERT INTO employees (user_id, first_name, last_name, email, phone, department_id, date_joined) VALUES (?, ?, ?, ?, ?, ?, ?)");
-            $stmt->execute([$user_id, $first_name, $last_name, $email, $phone, $department_id, $date_joined]);
+            $stmt = $pdo->prepare("INSERT INTO employees (user_id, first_name, last_name, email, phone, department_id, date_joined, weekly_off_day) VALUES (?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->execute([$user_id, $first_name, $last_name, $email, $phone, $department_id, $date_joined, $weekly_off_day]);
             
             $pdo->commit();
             $message = "<div class='alert alert-success'>Employee added successfully. Default Login -> Username: <b>$username</b> | Password: <b>$password</b></div>";
@@ -58,6 +59,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
         $department_id = !empty($_POST['department_id']) ? $_POST['department_id'] : null;
         $role_id = $_POST['role_id'];
         $date_joined = $_POST['date_joined'];
+        $weekly_off_day = !empty($_POST['weekly_off_day']) ? $_POST['weekly_off_day'] : null;
         
         $pdo->beginTransaction();
         try {
@@ -66,8 +68,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action'])) {
             $stmt->execute([$role_id, $user_id]);
             
             // Update Employee Record
-            $stmt = $pdo->prepare("UPDATE employees SET first_name=?, last_name=?, email=?, phone=?, department_id=?, date_joined=? WHERE id=?");
-            $stmt->execute([$first_name, $last_name, $email, $phone, $department_id, $date_joined, $emp_id]);
+            $stmt = $pdo->prepare("UPDATE employees SET first_name=?, last_name=?, email=?, phone=?, department_id=?, date_joined=?, weekly_off_day=? WHERE id=?");
+            $stmt->execute([$first_name, $last_name, $email, $phone, $department_id, $date_joined, $weekly_off_day, $emp_id]);
             
             $pdo->commit();
             $message = "<div class='alert alert-success'>Employee updated successfully.</div>";
@@ -143,6 +145,7 @@ include '../includes/sidebar.php';
                                 <th>Contact</th>
                                 <th>Department</th>
                                 <th>Joining Date</th>
+                                <th>Weekly Off</th>
                                 <th>System Role</th>
                                 <th>Account Status</th>
                                 <th class="text-center">Actions</th>
@@ -161,6 +164,7 @@ include '../includes/sidebar.php';
                                     </td>
                                     <td><span class="badge bg-secondary"><?php echo htmlspecialchars($emp['dept_name'] ?? 'Not Assigned'); ?></span></td>
                                     <td><?php echo $emp['date_joined'] ? date('d M Y', strtotime($emp['date_joined'])) : 'N/A'; ?></td>
+                                    <td><span class="badge bg-info"><?php echo htmlspecialchars($emp['weekly_off_day'] ?? 'None'); ?></span></td>
                                     <td><span class="badge bg-primary"><?php echo htmlspecialchars($emp['role_name'] ?? 'None'); ?></span></td>
                                     <td>
                                         <span class="badge bg-<?php echo ($emp['user_status'] == 'Active') ? 'success' : 'danger'; ?>">
@@ -178,6 +182,7 @@ include '../includes/sidebar.php';
                                             data-dept="<?php echo $emp['department_id']; ?>"
                                             data-role="<?php echo $emp['role_id']; ?>"
                                             data-joined="<?php echo $emp['date_joined']; ?>"
+                                            data-weeklyoff="<?php echo $emp['weekly_off_day']; ?>"
                                             data-bs-toggle="modal" data-bs-target="#editEmpModal">
                                             <i class="fas fa-edit"></i>
                                         </button>
@@ -234,6 +239,19 @@ include '../includes/sidebar.php';
                         <div class="col-md-6 mb-3">
                             <label>Date of Joining</label>
                             <input type="date" name="date_joined" class="form-control" value="<?php echo date('Y-m-d'); ?>">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Weekly Off Day</label>
+                            <select name="weekly_off_day" class="form-control">
+                                <option value="">-- No Off Day --</option>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
                         </div>
                     </div>
                     <div class="row border-top pt-3 mt-2">
@@ -305,6 +323,19 @@ include '../includes/sidebar.php';
                             <label>Date of Joining</label>
                             <input type="date" name="date_joined" id="edit_joined" class="form-control">
                         </div>
+                        <div class="col-md-6 mb-3">
+                            <label>Weekly Off Day</label>
+                            <select name="weekly_off_day" id="edit_weeklyoff" class="form-control">
+                                <option value="">-- No Off Day --</option>
+                                <option value="Monday">Monday</option>
+                                <option value="Tuesday">Tuesday</option>
+                                <option value="Wednesday">Wednesday</option>
+                                <option value="Thursday">Thursday</option>
+                                <option value="Friday">Friday</option>
+                                <option value="Saturday">Saturday</option>
+                                <option value="Sunday">Sunday</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="row border-top pt-3 mt-2">
                         <div class="col-md-6 mb-3">
@@ -350,6 +381,7 @@ document.querySelectorAll('.edit-btn').forEach(btn => {
         document.getElementById('edit_dept').value = this.dataset.dept || '';
         document.getElementById('edit_role').value = this.dataset.role || '';
         document.getElementById('edit_joined').value = this.dataset.joined || '';
+        document.getElementById('edit_weeklyoff').value = this.dataset.weeklyoff || '';
     });
 });
 </script>

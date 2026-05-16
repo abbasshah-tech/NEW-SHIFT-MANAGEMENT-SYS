@@ -70,16 +70,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST' && isset($_POST['action']) && $role_id 
         $stmt->execute([$es_id]);
         if (!$stmt->fetch()) {
             // Compare current time with shift start time to determine 'Present' or 'Late'
-            $stmt = $pdo->prepare("SELECT s.start_time FROM employee_shifts es JOIN shifts s ON es.shift_id = s.id WHERE es.id = ?");
+            $stmt = $pdo->prepare("SELECT s.start_time, e.weekly_off_day FROM employee_shifts es JOIN shifts s ON es.shift_id = s.id JOIN employees e ON es.employee_id = e.id WHERE es.id = ?");
             $stmt->execute([$es_id]);
-            $shift_start = $stmt->fetchColumn();
+            $shift_data = $stmt->fetch();
+            $shift_start = $shift_data['start_time'];
+            $weekly_off = $shift_data['weekly_off_day'];
             
             $current_time = date('H:i:s');
+            $current_day = date('l');
+            
             $status = ($current_time > date('H:i:s', strtotime($shift_start . ' +15 minutes'))) ? 'Late' : 'Present';
 
             $stmt = $pdo->prepare("INSERT INTO attendance (employee_shift_id, clock_in, status) VALUES (?, NOW(), ?)");
             if ($stmt->execute([$es_id, $status])) {
                 $message = "<div class='alert alert-success'>Checked in successfully. Status: $status.</div>";
+                
+                // Weekly off check
+                if ($weekly_off && $weekly_off === $current_day) {
+                    $message .= "<div class='alert alert-warning mt-2'><b>Warning:</b> You have checked in on your designated weekly off day ($weekly_off). This is recorded as extra duty.</div>";
+                    create_notification($pdo, $user_id, "Day Off Check-In", "You checked in on your designated weekly off day ($weekly_off).", 'warning');
+                }
             }
         }
     } elseif ($action == 'clock_out') {

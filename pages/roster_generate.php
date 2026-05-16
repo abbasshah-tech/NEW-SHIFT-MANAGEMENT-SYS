@@ -36,9 +36,26 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             
             $pdo->beginTransaction();
             try {
+                // Pre-fetch employee data (user_id and weekly_off_day)
+                $emp_data = [];
+                $placeholders = str_repeat('?,', count($employee_ids) - 1) . '?';
+                $stmt = $pdo->prepare("SELECT id, user_id, weekly_off_day FROM employees WHERE id IN ($placeholders)");
+                $stmt->execute($employee_ids);
+                foreach ($stmt->fetchAll() as $row) {
+                    $emp_data[$row['id']] = $row;
+                }
+
                 while ($current_date <= $last_date) {
                     $roster_date = date('Y-m-d', $current_date);
+                    $day_name = date('l', $current_date);
+                    
                     foreach ($employee_ids as $emp_id) {
+                        // Skip if it's the employee's weekly off day
+                        if (isset($emp_data[$emp_id]) && $emp_data[$emp_id]['weekly_off_day'] === $day_name) {
+                            $skip_count++;
+                            continue;
+                        }
+
                         $stmt = $pdo->prepare("SELECT id FROM employee_shifts WHERE employee_id = ? AND roster_date = ?");
                         $stmt->execute([$emp_id, $roster_date]);
                         if ($stmt->fetch()) {
@@ -47,6 +64,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                             $stmt = $pdo->prepare("INSERT INTO employee_shifts (employee_id, shift_id, roster_date, assigned_by) VALUES (?, ?, ?, ?)");
                             $stmt->execute([$emp_id, $shift_id, $roster_date, $assigned_by]);
                             $success_count++;
+                            
+                            // Send In-App Notification
+                            if (isset($emp_data[$emp_id]['user_id'])) {
+                                $user_id = $emp_data[$emp_id]['user_id'];
+                                $msg = "You have been assigned a shift on " . date('d M Y', strtotime($roster_date)) . ".";
+                                create_notification($pdo, $user_id, "New Shift Assigned", $msg, 'info');
+                                
+                                // Example Email notification
+                                // $email = get_user_email($pdo, $user_id); // Assuming we had a helper
+                                // send_email_notification($email, "New Shift Assigned", $msg);
+                            }
                         }
                     }
                     $current_date = strtotime("+1 day", $current_date);

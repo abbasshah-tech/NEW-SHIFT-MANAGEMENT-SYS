@@ -101,4 +101,60 @@ function get_sidebar_menus($pdo, $role_id) {
     
     return $menus;
 }
+
+/**
+ * Create a new notification for a user
+ * @param PDO $pdo
+ * @param int $user_id
+ * @param string $title
+ * @param string $message
+ * @param string $type (info, warning, success, danger)
+ */
+function create_notification($pdo, $user_id, $title, $message, $type = 'info') {
+    $stmt = $pdo->prepare("INSERT INTO notifications (user_id, title, message, type) VALUES (?, ?, ?, ?)");
+    return $stmt->execute([$user_id, $title, $message, $type]);
+}
+
+/**
+ * Send email notification (Stub for PHPMailer)
+ * @param string $to
+ * @param string $subject
+ * @param string $body
+ */
+function send_email_notification($to, $subject, $body) {
+    // In a real production environment, you would require PHPMailer here:
+    // require_once __DIR__ . '/../libs/PHPMailer/src/Exception.php';
+    // require_once __DIR__ . '/../libs/PHPMailer/src/PHPMailer.php';
+    // require_once __DIR__ . '/../libs/PHPMailer/src/SMTP.php';
+    
+    /* Example Implementation:
+    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = 'smtp.example.com';
+        $mail->SMTPAuth   = true;
+        $mail->Username   = 'user@example.com';
+        $mail->Password   = 'password';
+        $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port       = 587;
+
+        $mail->setFrom('noreply@shiftpro.com', 'SHIFT Pro');
+        $mail->addAddress($to);
+
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body    = $body;
+
+        $mail->send();
+        return true;
+    } catch (Exception $e) {
+        error_log("Email could not be sent. Mailer Error: {$mail->ErrorInfo}");
+        return false;
+    }
+    */
+    
+    // For localhost XAMPP testing without SMTP configured, just return true or log it.
+    error_log("Email stub called for $to - $subject");
+    return true;
+}
 ?>

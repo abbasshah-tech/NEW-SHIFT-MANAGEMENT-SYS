@@ -118,7 +118,7 @@ $username = $_SESSION['username'];
                                 </thead>
                                 <tbody>
                                     <?php
-                                    $emp_id_query = $pdo->prepare("SELECT id, first_name, last_name, phone, email, department_id, date_joined FROM employees WHERE user_id = ?");
+                                    $emp_id_query = $pdo->prepare("SELECT id, first_name, last_name, phone, email, department_id, date_joined, weekly_off_day FROM employees WHERE user_id = ?");
                                     $emp_id_query->execute([$_SESSION['user_id']]);
                                     $employee_data = $emp_id_query->fetch();
                                     $emp_id = $employee_data['id'] ?? 0;
@@ -233,6 +233,9 @@ $username = $_SESSION['username'];
                                 </li>
                                 <li class="list-group-item">
                                     <b>Joined</b> <a class="float-right"><?php echo $employee_data['date_joined'] ? date('M Y', strtotime($employee_data['date_joined'])) : 'N/A'; ?></a>
+                                </li>
+                                <li class="list-group-item bg-light border-bottom-0">
+                                    <b>Weekly Off Day</b> <a class="float-right text-info fw-bold"><?php echo htmlspecialchars($employee_data['weekly_off_day'] ?? 'None'); ?></a>
                                 </li>
                             </ul>
                         </div>

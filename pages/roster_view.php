@@ -76,7 +76,7 @@ $roster = $stmt->fetchAll();
 // Fetch Dropdowns for Filters
 $departments = $pdo->query("SELECT id, dept_name FROM departments")->fetchAll();
 
-$emp_query = "SELECT id, first_name, last_name FROM employees WHERE 1=1 $dept_restriction";
+$emp_query = "SELECT id, first_name, last_name FROM employees e WHERE 1=1 $dept_restriction";
 $employees = $pdo->query($emp_query)->fetchAll();
 
 // ===== CSV EXPORT HANDLER =====
